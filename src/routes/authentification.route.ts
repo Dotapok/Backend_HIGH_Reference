@@ -7,16 +7,16 @@ const router = Router();
 /**
  * @swagger
  * tags:
- *   name: Auth
- *   description: User authentication
+ *   name: Authentification
+ *   description: Gestion de l'authentification des utilisateurs
  */
 
 /**
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Register a new user
- *     tags: [Auth]
+ *     summary: Enregistrement d'un nouvel utilisateur
+ *     tags: [Authentification]
  *     requestBody:
  *       required: true
  *       content:
@@ -31,28 +31,42 @@ const router = Router();
  *             properties:
  *               firstName:
  *                 type: string
+ *                 description: Prénom de l'utilisateur
+ *                 example: Jean
  *               lastName:
  *                 type: string
+ *                 description: Nom de famille de l'utilisateur
+ *                 example: Dupont
  *               email:
  *                 type: string
  *                 format: email
+ *                 description: Adresse email valide
+ *                 example: jean.dupont@example.com
  *               password:
  *                 type: string
  *                 format: password
  *                 minLength: 6
+ *                 description: Mot de passe (minimum 6 caractères)
+ *                 example: MonMotDePasse123
  *     responses:
  *       201:
- *         description: User registered successfully
+ *         description: Utilisateur enregistré avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  *       400:
- *         description: Validation error
+ *         description: Erreur de validation
+ *       500:
+ *         description: Erreur serveur
  */
 router.post(
   '/register',
   [
-    body('firstName').notEmpty().withMessage('First name is required'),
-    body('lastName').notEmpty().withMessage('Last name is required'),
-    body('email').isEmail().withMessage('Please include a valid email'),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+    body('firstName').notEmpty().withMessage('Le prénom est obligatoire'),
+    body('lastName').notEmpty().withMessage('Le nom de famille est obligatoire'),
+    body('email').isEmail().withMessage('Veuillez fournir une adresse email valide'),
+    body('password').isLength({ min: 6 }).withMessage('Le mot de passe doit contenir au moins 6 caractères')
   ],
   register
 );
@@ -61,8 +75,8 @@ router.post(
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: Login user
- *     tags: [Auth]
+ *     summary: Connexion d'un utilisateur
+ *     tags: [Authentification]
  *     requestBody:
  *       required: true
  *       content:
@@ -76,20 +90,30 @@ router.post(
  *               email:
  *                 type: string
  *                 format: email
+ *                 description: Adresse email enregistrée
+ *                 example: jean.dupont@example.com
  *               password:
  *                 type: string
  *                 format: password
+ *                 description: Mot de passe
+ *                 example: MonMotDePasse123
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Connexion réussie
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
  *       401:
- *         description: Invalid credentials
+ *         description: Identifiants invalides
+ *       500:
+ *         description: Erreur serveur
  */
 router.post(
   '/login',
   [
-    body('email').isEmail().withMessage('Please include a valid email'),
-    body('password').notEmpty().withMessage('Password is required')
+    body('email').isEmail().withMessage('Veuillez fournir une adresse email valide'),
+    body('password').notEmpty().withMessage('Le mot de passe est obligatoire')
   ],
   login
 );

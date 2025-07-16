@@ -8,7 +8,7 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: 'API Documentation',
       version,
-      description: 'API for user authentication and profile management',
+      description: "API de l'application HIGH Referrence Test Recrutement.",
     },
     components: {
       securitySchemes: {
