@@ -9,6 +9,24 @@ import errorMiddleware from './middlewares/erreur.md';
 
 const app = express();
 
+const allowedOrigins = [
+  'https://www.projetauthentification-production.up.railway.app/',
+  'https://projetauthentification-production.up.railway.app/',
+  'http://localhost:5173'
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+};
+app.use(cors(corsOptions));
+
 // Middlewares de sécurité
 app.use(helmet()); // Protège contre les vulnérabilités courantes via les headers
 app.use(cors()); // Gère les autorisations CORS
