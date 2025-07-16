@@ -28,7 +28,31 @@ router.use(protect); // Protection de toutes les routes suivantes
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/User'
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                   example: "507f1f77bcf86cd799439011"
+ *                 firstName:
+ *                   type: string
+ *                   example: "Jean"
+ *                 lastName:
+ *                   type: string
+ *                   example: "Dupont"
+ *                 email:
+ *                   type: string
+ *                   format: email
+ *                   example: "jean.dupont@example.com"
+ *                 bio:
+ *                   type: string
+ *                   example: "Développeur full-stack passionné"
+ *                 profilePicture:
+ *                   type: string
+ *                   format: url
+ *                   example: "https://example.com/photo.jpg"
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
  *       401:
  *         description: Non autorisé - Token invalide ou manquant
  *       500:
@@ -74,7 +98,26 @@ router.get('/me', getProfile);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "Profil mis à jour avec succès"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                         firstName:
+ *                           type: string
+ *                         lastName:
+ *                           type: string
  *       400:
  *         description: Données invalides
  *       401:
@@ -107,7 +150,14 @@ router.patch(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "Compte supprimé avec succès"
  *       401:
  *         description: Non autorisé
  *       500:
