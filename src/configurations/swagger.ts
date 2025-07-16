@@ -1,15 +1,30 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
-import { version } from '../../package.json';
+
+let version = '1.0.0';
 
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
       title: 'API Documentation',
-      version,
+      version: version,
       description: "API de l'application HIGH Referrence Test Recrutement.",
+      contact: {
+        name: "Support Technique",
+        email: "support@example.com"
+      }
     },
+    servers: [
+      {
+        url: "http://localhost:5000",
+        description: "Serveur de développement"
+      },
+      {
+        url: "https://votre-production-url.com",
+        description: "Serveur de production"
+      }
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -23,7 +38,7 @@ const options: swaggerJsdoc.Options = {
       bearerAuth: [],
     }],
   },
-  apis: ['./src/routes/*.ts', './src/models/*.ts'],
+  apis: ['./src/routes/*.ts', './src/modeles/*.ts'], // Notez 'modeles' au lieu de 'models'
 };
 
 const swaggerSpec = swaggerJsdoc(options);
