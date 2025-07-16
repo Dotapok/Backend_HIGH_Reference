@@ -9,34 +9,41 @@ import errorMiddleware from './middlewares/erreur.md';
 
 const app = express();
 
+// Liste des origines autorisées
 const allowedOrigins = [
-  'https://www.projetauthentification-production.up.railway.app/',
-  'https://projetauthentification-production.up.railway.app/',
+  'https://www.projetauthentification-production.up.railway.app',
+  'https://projetauthentification-production.up.railway.app',
   'http://localhost:5173'
 ];
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+// Configuration CORS avec typage TypeScript
+const corsOptions: cors.CorsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Autorise les requêtes sans origine (comme les requêtes curl) en développement
+    if (!origin && process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    if (origin && allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 200
 };
-app.use(cors(corsOptions));
 
 // Middlewares de sécurité
-app.use(helmet()); // Protège contre les vulnérabilités courantes via les headers
-app.use(cors()); // Gère les autorisations CORS
-app.use(express.json()); // Parse le JSON entrant
-app.use(express.urlencoded({ extended: true })); // Parse les URL encodées
+app.use(helmet());
+app.use(cors(corsOptions)); // Utilisez la configuration CORS une seule fois
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Limite les requêtes à 100 par 15 minutes
+// Limite les requêtes
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limite chaque IP à 100 requêtes par fenêtre
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
 app.use(limiter);
 
