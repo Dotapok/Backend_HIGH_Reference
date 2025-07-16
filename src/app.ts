@@ -13,7 +13,9 @@ const app = express();
 const allowedOrigins = [
   'https://www.projetauthentification-production.up.railway.app',
   'https://projetauthentification-production.up.railway.app',
-  'http://localhost:5173'
+  'http://localhost:5173',
+  'https://backendhighreference-production.up.railway.app',
+  'https://www.backendhighreference-production.up.railway.app'
 ];
 
 // Configuration CORS avec typage TypeScript
