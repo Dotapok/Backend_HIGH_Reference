@@ -9,28 +9,11 @@ import errorMiddleware from './middlewares/erreur.md';
 
 const app = express();
 
-// Liste des origines autorisées
-const allowedOrigins = [
-  'https://www.projetauthentification-production.up.railway.app',
-  'https://projetauthentification-production.up.railway.app',
-  'http://localhost:5173',
-  'https://backendhighreference-production.up.railway.app',
-  'https://www.backendhighreference-production.up.railway.app'
-];
-
-// Configuration CORS avec typage TypeScript
+// Configuration CORS qui accepte toutes les origines
 const corsOptions: cors.CorsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Autorise les requêtes sans origine (comme les requêtes curl) en développement
-    if (!origin && process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
-    }
-
-    if (origin && allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+    // Accepte toutes les origines
+    callback(null, true);
   },
   credentials: true,
   optionsSuccessStatus: 200
@@ -38,7 +21,7 @@ const corsOptions: cors.CorsOptions = {
 
 // Middlewares de sécurité
 app.use(helmet());
-app.use(cors(corsOptions)); // Utilisez la configuration CORS une seule fois
+app.use(cors(corsOptions)); // Une seule configuration CORS
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
