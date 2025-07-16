@@ -17,13 +17,9 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "http://localhost:5000",
+        url: "https://backendhighreference-production.up.railway.app/",
         description: "Serveur de développement"
       },
-      {
-        url: "https://votre-production-url.com",
-        description: "Serveur de production"
-      }
     ],
     components: {
       securitySchemes: {
