@@ -1,6 +1,6 @@
 {
   "name": "projet_recrutement_backend",
-  "type": "module",
+  "type": "commonjs",
   "version": "1.0.0",
   "scripts": {
     "start": "node dist/serveur.js",
