@@ -36,7 +36,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 
   try {
     // Verify token
-    const secret = process.env.JWT_SECRET;
+    const secret = process.env.JWT_SECRET || 'high_reference';
     if (!secret) {
       throw new Error('JWT_SECRET is not defined in environment variables');
     }
