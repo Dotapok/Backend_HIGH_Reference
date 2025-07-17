@@ -7,7 +7,8 @@
     "dev": "nodemon src/serveur.ts",
     "build": "tsc",
     "prestart": "npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "seed:admin": "npx ts-node src/seeders/admin.seeder.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

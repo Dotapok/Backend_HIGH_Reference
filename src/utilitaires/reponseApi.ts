@@ -1,20 +1,20 @@
-export class ApiResponse {
+export class ApiResponse<T = any> {
   constructor(
     public statusCode: number,
     public message: string,
-    public data: any = null,
+    public data: T | null = null,
     public success: boolean = statusCode < 400
   ) {}
 
-  static success(message: string, data: any = null) {
-    return new ApiResponse(200, message, data);
+  static success<T>(message: string, data: T | null = null) {
+    return new ApiResponse<T>(200, message, data);
   }
 
-  static created(message: string, data: any = null) {
-    return new ApiResponse(201, message, data);
+  static created<T>(message: string, data: T | null = null) {
+    return new ApiResponse<T>(201, message, data);
   }
 
-  static error(statusCode: number, message: string, errors: any = null) {
-    return new ApiResponse(statusCode, message, errors, false);
+  static error<T>(statusCode: number, message: string, errors: T | null = null) {
+    return new ApiResponse<T>(statusCode, message, errors, false);
   }
 }

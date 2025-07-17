@@ -27,6 +27,7 @@ const router = Router();
  *               - firstName
  *               - lastName
  *               - email
+ *               - phone
  *               - password
  *             properties:
  *               firstName:
@@ -42,6 +43,10 @@ const router = Router();
  *                 format: email
  *                 description: Adresse email valide
  *                 example: jean.dupont@example.com
+ *               phone:
+ *                 type: string
+ *                 description: Numéro de téléphone
+ *                 example: "+1234567890"
  *               password:
  *                 type: string
  *                 format: password
@@ -80,6 +85,12 @@ const router = Router();
  *                         email:
  *                           type: string
  *                           example: "jean.dupont@example.com"
+ *                         phone:
+ *                           type: string
+ *                           example: "+1234567890"
+ *                         role:
+ *                           type: string
+ *                           example: "user"
  *                     token:
  *                       type: string
  *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -94,6 +105,7 @@ router.post(
     body('firstName').notEmpty().withMessage('Le prénom est obligatoire'),
     body('lastName').notEmpty().withMessage('Le nom de famille est obligatoire'),
     body('email').isEmail().withMessage('Veuillez fournir une adresse email valide'),
+    body('phone').notEmpty().withMessage('Le numéro de téléphone est obligatoire'),
     body('password').isLength({ min: 6 }).withMessage('Le mot de passe doit contenir au moins 6 caractères')
   ],
   register
@@ -157,6 +169,9 @@ router.post(
  *                         email:
  *                           type: string
  *                           example: "jean.dupont@example.com"
+ *                         role:
+ *                           type: string
+ *                           example: "user"
  *                     token:
  *                       type: string
  *                       example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."

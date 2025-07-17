@@ -18,7 +18,7 @@ const options: swaggerJsdoc.Options = {
     servers: [
       {
         url: "https://backendhighreference-production.up.railway.app/",
-        description: "Serveur de développement"
+        description: "Serveur"
       },
     ],
     components: {
@@ -34,7 +34,7 @@ const options: swaggerJsdoc.Options = {
       bearerAuth: [],
     }],
   },
-  apis: ['./src/routes/*.ts', './src/modeles/*.ts'], // Notez 'modeles' au lieu de 'models'
+  apis: ['./src/routes/*.ts', './src/modeles/*.ts'],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
