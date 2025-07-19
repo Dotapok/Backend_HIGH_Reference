@@ -5,7 +5,8 @@ import {
   getAllUsers,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  getAllGames
 } from '../controlleurs/admin.controlleur';
 
 const router = Router();
@@ -17,7 +18,7 @@ const router = Router();
  *   description: Gestion des utilisateurs par l'administrateur
  */
 
-router.use(protect, isAdmin); // Protection admin pour toutes les routes
+router.use(protect, isAdmin); 
 
 /**
  * @swagger
@@ -282,5 +283,90 @@ router.patch(
  *         description: Erreur serveur
  */
 router.delete('/users/:id', deleteUser);
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Game:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         user:
+ *           type: object
+ *           properties:
+ *             _id:
+ *               type: string
+ *             firstName:
+ *               type: string
+ *             lastName:
+ *               type: string
+ *         number:
+ *           type: number
+ *         result:
+ *           type: string
+ *           enum: [win, lose]
+ *         pointsChange:
+ *           type: number
+ *         newBalance:
+ *           type: number
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ */
+
+/**
+ * @swagger
+ * /api/admin/games:
+ *   get:
+ *     summary: Récupère l'historique complet de toutes les parties (Admin seulement)
+ *     tags: [Administration]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Numéro de page
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Nombre d'éléments par page
+ *     responses:
+ *       200:
+ *         description: Historique des parties récupéré avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 games:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Game'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *       401:
+ *         description: Non autorisé
+ *       403:
+ *         description: Accès refusé (non admin)
+ *       500:
+ *         description: Erreur serveur
+ */
+router.get('/games', getAllGames);
 
 export default router;
