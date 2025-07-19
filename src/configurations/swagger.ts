@@ -19,7 +19,7 @@ const options: swaggerJsdoc.Options = {
       {
         url: "https://backend-truenumber.up.railway.app/api-docs/",
         description: "Serveur"
-      },
+      }
     ],
     components: {
       securitySchemes: {
