@@ -17,7 +17,7 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "https://backend-truenumber.up.railway.app/api-docs/",
+        url: "https://backend-truenumber.up.railway.app/api/",
         description: "Serveur"
       }
     ],
