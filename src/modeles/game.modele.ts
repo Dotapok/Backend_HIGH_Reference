@@ -10,6 +10,8 @@ export interface IGame extends Document {
   pointsChange: number;
   balanceAfter: number;
   createdAt: Date;
+  gameType: 'solo' | 'multiplayer';
+  multiplayerGame?: Types.ObjectId;
 }
 
 const GameSchema = new Schema({
@@ -34,6 +36,15 @@ const GameSchema = new Schema({
   balanceAfter: { 
     type: Number, 
     required: true 
+  },
+  gameType: {
+    type: String,
+    enum: ['solo', 'multiplayer'],
+    default: 'solo'
+  },
+  multiplayerGame: {
+    type: Schema.Types.ObjectId,
+    ref: 'MultiplayerGame'
   },
   createdAt: { 
     type: Date, 

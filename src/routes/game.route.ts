@@ -3,7 +3,11 @@ import { protect } from '../middlewares/authentification.md';
 import { 
   playGame,
   getGameHistory,
-  getPointsBalance
+  getPointsBalance,
+  createMultiplayerGame,
+  listWaitingGames,
+  joinMultiplayerGame,
+  playTurn
 } from '../controlleurs/game.controlleur';
 
 const router = Router();
@@ -120,5 +124,96 @@ router.get('/history', getGameHistory);
  *         description: Erreur serveur
  */
 router.get('/balance', getPointsBalance);
+
+/**
+ * @swagger
+ * /api/game/multiplayer:
+ *   post:
+ *     summary: Créer une partie multijoueur
+ *     tags: [Jeu]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               stake:
+ *                 type: number
+ *                 example: 50
+ *               timeLimit:
+ *                 type: number
+ *                 example: 60
+ *     responses:
+ *       201:
+ *         description: Partie créée
+ */
+router.post('/multiplayer', createMultiplayerGame);
+
+/**
+ * @swagger
+ * /api/game/multiplayer/waiting:
+ *   get:
+ *     summary: Lister les parties en attente
+ *     tags: [Jeu]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des parties
+ */
+router.get('/multiplayer/waiting', listWaitingGames);
+
+/**
+ * @swagger
+ * /api/game/multiplayer/join/{gameId}:
+ *   post:
+ *     summary: Rejoindre une partie
+ *     tags: [Jeu]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: gameId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Partie rejointe
+ */
+router.post('/multiplayer/join/:gameId', joinMultiplayerGame);
+
+/**
+ * @swagger
+ * /api/game/multiplayer/play/{gameId}:
+ *   post:
+ *     summary: Jouer un tour
+ *     tags: [Jeu]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: gameId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               number:
+ *                 type: number
+ *                 example: 75
+ *     responses:
+ *       200:
+ *         description: Coup enregistré
+ */
+router.post('/multiplayer/play/:gameId', playTurn);
 
 export default router;
