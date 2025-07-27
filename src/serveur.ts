@@ -16,7 +16,7 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: '*', // À adapter pour la prod
+    origin: '*',
     credentials: true,
   },
 });

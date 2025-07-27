@@ -14,6 +14,62 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+// Map pour stocker les timers actifs par partie
+const gameTimers = new Map<string, NodeJS.Timeout>();
+
+// Fonction pour démarrer le timer d'un joueur
+const startPlayerTimer = async (gameId: string, playerId: string, timeLimit: number) => {
+  const timer = setTimeout(async () => {
+    try {
+      const game = await MultiplayerGame.findById(gameId);
+      if (!game || game.status !== 'playing') return;
+
+      // Générer un nombre aléatoire pour le joueur qui a timeout
+      const randomNumber = Math.floor(Math.random() * 101);
+      
+      if (game.creator.toString() === playerId) {
+        game.creatorNumber = randomNumber;
+      } else if (game.opponent && game.opponent.toString() === playerId) {
+        game.opponentNumber = randomNumber;
+      }
+
+      // Vérifier si la partie est terminée
+      if (game.creatorNumber !== undefined && game.opponentNumber !== undefined) {
+        game.status = 'finished';
+        game.finishedAt = new Date();
+
+        if (game.creatorNumber > game.opponentNumber) {
+          game.winner = game.creator;
+        } else if (game.opponentNumber > game.creatorNumber) {
+          game.winner = game.opponent;
+        }
+
+        await updateGamePoints(game);
+        
+        // Émettre la fin de partie
+        const room = getGameRoom(gameId);
+        io.to(room).emit('gameUpdate', { game, finished: true, timeout: true });
+      }
+
+      await game.save();
+      gameTimers.delete(gameId);
+    } catch (error) {
+      console.error('Erreur dans le timer:', error);
+    }
+  }, timeLimit * 1000);
+
+  gameTimers.set(gameId, timer);
+};
+
+// Fonction pour arrêter le timer d'une partie
+const stopGameTimer = (gameId: string) => {
+  const timer = gameTimers.get(gameId);
+  if (timer) {
+    clearTimeout(timer);
+    gameTimers.delete(gameId);
+  }
+};
+
 // Contrôleur pour jouer une partie
 export const playGame = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -206,6 +262,17 @@ export const joinMultiplayerGame = async (req: AuthenticatedRequest, res: Respon
 
     await game.save();
 
+    // Démarrer le timer pour le créateur (il joue en premier)
+    startPlayerTimer(gameId, game.creator.toString(), game.timeLimit);
+
+    // Émettre l'événement de début de partie
+    const room = getGameRoom(gameId);
+    io.to(room).emit('gameStarted', { 
+      game, 
+      currentPlayer: game.creator.toString(),
+      timeLimit: game.timeLimit 
+    });
+
     res.status(200).json(new ApiResponse(200, 'Partie rejointe', game));
   } catch (error) {
     console.error('Erreur dans joinMultiplayerGame:', error);
@@ -213,26 +280,50 @@ export const joinMultiplayerGame = async (req: AuthenticatedRequest, res: Respon
   }
 };
 
-// Jouer un tour
+// Jouer un tour (génération automatique du nombre)
 export const playTurn = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?._id;
     const gameId = req.params.gameId;
-    const { number } = req.body;
 
     const game = await MultiplayerGame.findById(gameId);
     if (!game) return res.status(404).json(new ApiResponse(404, 'Partie non trouvée'));
 
-    // Vérifier le rôle du joueur
+    if (game.status !== 'playing') {
+      return res.status(400).json(new ApiResponse(400, 'Partie non en cours'));
+    }
+
+    // Vérifier que c'est bien le tour du joueur
+    const isCreatorTurn = game.creatorNumber === undefined;
+    const isOpponentTurn = game.opponentNumber === undefined;
+    
+    if (game.creator.equals(userId) && !isCreatorTurn) {
+      return res.status(400).json(new ApiResponse(400, 'Ce n\'est pas votre tour'));
+    }
+    
+    if (game.opponent?.equals(userId) && !isOpponentTurn) {
+      return res.status(400).json(new ApiResponse(400, 'Ce n\'est pas votre tour'));
+    }
+
+    // Générer le nombre automatiquement
+    const randomNumber = Math.floor(Math.random() * 101);
+
+    // Arrêter le timer actuel
+    stopGameTimer(gameId);
+
+    // Enregistrer le nombre du joueur
     if (game.creator.equals(userId)) {
-      game.creatorNumber = number;
+      game.creatorNumber = randomNumber;
     } else if (game.opponent?.equals(userId)) {
-      game.opponentNumber = number;
+      game.opponentNumber = randomNumber;
     } else {
       return res.status(403).json(new ApiResponse(403, 'Accès non autorisé'));
     }
 
     // Vérifier si la partie est terminée
+    let finished = false;
+    let nextPlayer = null;
+    
     if (game.creatorNumber !== undefined && game.opponentNumber !== undefined) {
       game.status = 'finished';
       game.finishedAt = new Date();
@@ -243,15 +334,142 @@ export const playTurn = async (req: AuthenticatedRequest, res: Response) => {
         game.winner = game.opponent;
       }
 
-      // Mettre à jour les points
       await updateGamePoints(game);
+      finished = true;
+    } else {
+      // Déterminer le prochain joueur
+      if (game.creatorNumber !== undefined && game.opponentNumber === undefined) {
+        nextPlayer = game.opponent?.toString();
+        // Démarrer le timer pour l'adversaire
+        startPlayerTimer(gameId, nextPlayer!, game.timeLimit);
+      }
     }
 
     await game.save();
-    res.status(200).json(new ApiResponse(200, 'Coup enregistré', game));
+
+    // Émettre l'événement de mise à jour
+    const room = getGameRoom(gameId);
+    io.to(room).emit('gameUpdate', { 
+      game, 
+      finished, 
+      nextPlayer,
+      lastPlayedNumber: randomNumber,
+      lastPlayer: userId
+    });
+
+    res.status(200).json(new ApiResponse(200, 'Coup enregistré', {
+      number: randomNumber,
+      game,
+      finished,
+      nextPlayer
+    }));
   } catch (error) {
     console.error('Erreur dans playTurn:', error);
     res.status(500).json(new ApiResponse(500, 'Erreur serveur'));
+  }
+};
+
+// Obtenir l'état d'une partie
+export const getGameStatus = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?._id;
+    const gameId = req.params.gameId;
+
+    const game = await MultiplayerGame.findById(gameId)
+      .populate('creator', 'firstName lastName')
+      .populate('opponent', 'firstName lastName')
+      .populate('winner', 'firstName lastName');
+
+    if (!game) {
+      return res.status(404).json(new ApiResponse(404, 'Partie non trouvée'));
+    }
+
+    // Vérifier que l'utilisateur fait partie de la partie
+    if (!game.creator.equals(userId) && !game.opponent?.equals(userId)) {
+      return res.status(403).json(new ApiResponse(403, 'Accès non autorisé'));
+    }
+
+    // Déterminer le joueur actuel
+    let currentPlayer = null;
+    if (game.status === 'playing') {
+      if (game.creatorNumber === undefined) {
+        currentPlayer = game.creator.toString();
+      } else if (game.opponentNumber === undefined) {
+        currentPlayer = game.opponent?.toString();
+      }
+    }
+
+    // Calculer le temps restant si la partie est en cours
+    let timeRemaining = null;
+    if (game.status === 'playing' && game.startedAt && currentPlayer) {
+      const elapsed = Date.now() - game.startedAt.getTime();
+      timeRemaining = Math.max(0, game.timeLimit - Math.floor(elapsed / 1000));
+    }
+
+    const response = {
+      game,
+      currentPlayer,
+      timeRemaining,
+      isMyTurn: currentPlayer === userId,
+      gameState: {
+        creatorPlayed: game.creatorNumber !== undefined,
+        opponentPlayed: game.opponentNumber !== undefined,
+        finished: game.status === 'finished'
+      }
+    };
+
+    res.status(200).json(new ApiResponse(200, 'État de la partie récupéré', response));
+  } catch (error) {
+    console.error('Erreur dans getGameStatus:', error);
+    res.status(500).json(new ApiResponse(500, 'Erreur serveur'));
+  }
+};
+
+// Obtenir l'historique des parties multijoueur
+export const getMultiplayerHistory = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?._id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    // Récupération des parties multijoueur avec pagination
+    const [games, totalGames] = await Promise.all([
+      Game.find({ 
+        userId, 
+        gameType: 'multiplayer' 
+      })
+        .populate('multiplayerGame')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Game.countDocuments({ 
+        userId, 
+        gameType: 'multiplayer' 
+      })
+    ]);
+
+    const response = new ApiResponse(
+      200,
+      'Historique multijoueur récupéré avec succès',
+      {
+        games,
+        pagination: {
+          total: totalGames,
+          page,
+          pages: Math.ceil(totalGames / limit),
+          limit
+        }
+      }
+    );
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Erreur dans getMultiplayerHistory:', error);
+    res.status(500).json(
+      new ApiResponse(500, 'Erreur lors de la récupération de l\'historique multijoueur')
+    );
   }
 };
 
@@ -274,21 +492,31 @@ const updateGamePoints = async (game: IMultiplayerGame) => {
     $inc: { points: -stake }
   });
 
-  // Historique des parties
+  // Récupérer les nouveaux soldes
+  const [winner, loser] = await Promise.all([
+    User.findById(winnerId),
+    User.findById(loserId)
+  ]);
+
+  // Historique des parties multijoueur
   await Game.create([
     {
       userId: winnerId,
       number: isCreatorWinner ? game.creatorNumber : game.opponentNumber,
       result: 'win',
       pointsChange: stake,
-      balanceAfter: (await User.findById(winnerId))!.points + stake
+      balanceAfter: winner!.points,
+      gameType: 'multiplayer',
+      multiplayerGame: game._id
     },
     {
       userId: loserId,
       number: isCreatorWinner ? game.opponentNumber : game.creatorNumber,
       result: 'lose',
       pointsChange: -stake,
-      balanceAfter: (await User.findById(loserId))!.points - stake
+      balanceAfter: loser!.points,
+      gameType: 'multiplayer',
+      multiplayerGame: game._id
     }
   ]);
 };
@@ -306,25 +534,50 @@ export function registerMultiplayerGameSocketHandlers() {
       socket.emit('joinedRoom', { room });
     });
 
-    // Jouer un tour (en temps réel)
-    socket.on('playTurn', async ({ gameId, number }: { gameId: string; number: number }) => {
+    // Jouer un tour (génération automatique)
+    socket.on('playTurn', async ({ gameId }: { gameId: string }) => {
       const game = await MultiplayerGame.findById(gameId);
       if (!game) {
         socket.emit('error', { message: 'Partie non trouvée' });
         return;
       }
-      // Vérifier le rôle du joueur
+
       const userId = user._id.toString();
+      
+      // Vérifier que c'est bien le tour du joueur
+      const isCreatorTurn = game.creatorNumber === undefined;
+      const isOpponentTurn = game.opponentNumber === undefined;
+      
+      if (game.creator.toString() === userId && !isCreatorTurn) {
+        socket.emit('error', { message: 'Ce n\'est pas votre tour' });
+        return;
+      }
+      
+      if (game.opponent && game.opponent.toString() === userId && !isOpponentTurn) {
+        socket.emit('error', { message: 'Ce n\'est pas votre tour' });
+        return;
+      }
+
+      // Générer le nombre automatiquement
+      const randomNumber = Math.floor(Math.random() * 101);
+
+      // Arrêter le timer actuel
+      stopGameTimer(gameId);
+
+      // Enregistrer le nombre du joueur
       if (game.creator.toString() === userId) {
-        game.creatorNumber = number;
+        game.creatorNumber = randomNumber;
       } else if (game.opponent && game.opponent.toString() === userId) {
-        game.opponentNumber = number;
+        game.opponentNumber = randomNumber;
       } else {
         socket.emit('error', { message: 'Accès non autorisé' });
         return;
       }
+
       // Vérifier si la partie est terminée
       let finished = false;
+      let nextPlayer = null;
+      
       if (game.creatorNumber !== undefined && game.opponentNumber !== undefined) {
         game.status = 'finished';
         game.finishedAt = new Date();
@@ -335,17 +588,41 @@ export function registerMultiplayerGameSocketHandlers() {
         }
         await updateGamePoints(game);
         finished = true;
+      } else {
+        // Déterminer le prochain joueur
+        if (game.creatorNumber !== undefined && game.opponentNumber === undefined) {
+          nextPlayer = game.opponent?.toString();
+          // Démarrer le timer pour l'adversaire
+          startPlayerTimer(gameId, nextPlayer!, game.timeLimit);
+        }
       }
+
       await game.save();
+
       // Émettre l'état du jeu à la room
       const room = getGameRoom(gameId);
-      io.to(room).emit('gameUpdate', { game, finished });
+      io.to(room).emit('gameUpdate', { 
+        game, 
+        finished, 
+        nextPlayer,
+        lastPlayedNumber: randomNumber,
+        lastPlayer: userId
+      });
     });
 
     // Quitter la room
     socket.on('leaveGameRoom', ({ gameId }: { gameId: string }) => {
       const room = getGameRoom(gameId);
       socket.leave(room);
+    });
+
+    // Nettoyer les timers lors de la déconnexion
+    socket.on('disconnect', () => {
+      // Arrêter tous les timers de cet utilisateur
+      for (const [gameId, timer] of gameTimers.entries()) {
+        clearTimeout(timer);
+        gameTimers.delete(gameId);
+      }
     });
   });
 }
