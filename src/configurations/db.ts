@@ -5,7 +5,7 @@ dotenv.config();
 
 const connectDB = async () => {
   try {
-    await mongoose.connect('mongodb://mongo:ViPBbYGMQdLvXAwXhaXyNrmTszvGSPXk@crossover.proxy.rlwy.net:51160');
+    await mongoose.connect('mongodb://mongo:lRhxMfrQmcwjHQVVtaMdbVYGuofzkRcO@centerbeam.proxy.rlwy.net:19517');
     console.log('MongoDB connecté avec succes.');
   } catch (error) {
     console.error('MongoDB connecxion erreur:', error);
