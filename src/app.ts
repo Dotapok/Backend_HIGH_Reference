@@ -14,10 +14,7 @@ const app = express();
 
 // Configuration CORS
 const corsOptions: cors.CorsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Accepte toutes les origines
-    callback(null, true);
-  },
+  origin: ['http://localhost:5173', 'https://truenumber.up.railway.app'],
   credentials: true,
   optionsSuccessStatus: 200
 };

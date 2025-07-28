@@ -16,8 +16,9 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: '*',
+    origin: ['http://localhost:5173', 'https://truenumber.up.railway.app'],
     credentials: true,
+    methods: ['GET', 'POST']
   },
 });
 
