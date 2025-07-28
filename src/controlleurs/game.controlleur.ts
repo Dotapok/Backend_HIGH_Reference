@@ -265,14 +265,6 @@ export const joinMultiplayerGame = async (req: AuthenticatedRequest, res: Respon
     // Démarrer le timer pour le créateur (il joue en premier)
     startPlayerTimer(gameId, game.creator.toString(), game.timeLimit);
 
-    // Émettre l'événement de début de partie
-    const room = getGameRoom(gameId);
-    io.to(room).emit('gameStarted', { 
-      game, 
-      currentPlayer: game.creator.toString(),
-      timeLimit: game.timeLimit 
-    });
-
     res.status(200).json(new ApiResponse(200, 'Partie rejointe', game));
   } catch (error) {
     console.error('Erreur dans joinMultiplayerGame:', error);
@@ -532,6 +524,15 @@ export function registerMultiplayerGameSocketHandlers() {
       const room = getGameRoom(gameId);
       socket.join(room);
       socket.emit('joinedRoom', { room });
+      // Ajout : si la partie est en 'playing' et qu'il y a deux joueurs, émettre gameStarted à la room
+      const game = await MultiplayerGame.findById(gameId).populate('creator').populate('opponent');
+      if (game && game.status === 'playing' && game.opponent) {
+        io.to(room).emit('gameStarted', {
+          game,
+          currentPlayer: game.creator._id.toString(),
+          timeLimit: game.timeLimit
+        });
+      }
     });
 
     // Jouer un tour (génération automatique)
